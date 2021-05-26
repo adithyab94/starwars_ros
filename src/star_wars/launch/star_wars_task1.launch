@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!-- spawn robots -->
+    <include file="$(find star_wars)/launch/spawn.launch">
+        <arg name="model" value="bb8.xacro"/>
+	<arg name="pose" value="5 0 1.57"/>
+	<arg name="prefix" value="robot1"/>
+    </include>
+    
+   <include file="$(find star_wars)/launch/spawn.launch">
+	<arg name="pose" value="-4 -2 .1"/>
+    <arg name="prefix" value="robot2"/>
+    <arg name="rgb" value=".8 0 0"/>
+    </include>
+  
+    <include file="$(find star_wars)/launch/spawn.launch">
+	    <arg name="pose" value="-1 3 -.3"/>
+        <arg name="prefix" value="robot3"/>
+        <arg name="rgb" value="0 0 .8"/>
+    </include>
+
+<!-- Rviz node -->
+    <param name="use_gui" value="True"/>
+    <node name="rviz" pkg="rviz" type="rviz"  args="-d $(find star_wars)/config.rviz" />
+    
+    <!-- Simulator -->
+    <node name="simulator" pkg="star_wars" type="sim"/>
+   
+    <group ns = "robot2">
+    <node name="controller_robo2" pkg="star_wars" type="controller_1_node"/>
+    </group>
+
+<group ns = "robot3">
+<node name="controller_robo3" pkg="star_wars" type="controller_1_node">
+    <remap from="/robot1/pose" to="/robot2/pose"/>
+    <remap from="/robot2/pose" to="/robot3/pose"/>
+    </node>
+</group>
+
+    
+</launch>

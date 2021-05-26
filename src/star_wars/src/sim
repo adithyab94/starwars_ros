@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+
+# modules
+# ROS stuff and multithreading
+import rospy
+from geometry_msgs.msg import Twist, Pose2D
+from sensor_msgs.msg import JointState
+import tf
+import numpy as np
+
+
+class Listener:
+    def __init__(self, i):
+        self.cmd_v = 0
+        self.cmd_w = 0
+        self.v_max = 2.5
+        self.w_max = 5
+        
+        self.sub = rospy.Subscriber('robot%i/cmd' % i, Twist, self.cmd_callback)
+    
+    def cmd_callback(self,cmd):
+        v,w = cmd.linear.x,cmd.angular.z
+        a = max(np.abs(v/self.v_max), np.abs(w/self.w_max))
+        if a > 1:
+            v /= a
+            w /= a
+        self.cmd_v = v
+        self.cmd_w = w
+    
+    
+if __name__ == "__main__":
+    rospy.init_node('sim')   
+    br = tf.TransformBroadcaster()
+
+    # robot dict
+    robot = {}
+    followers = []
+    
+    # publisher for poses
+    pub = {}
+    a = 2
+    b = 3
+    
+    # publisher for bb8 joints (robot 1)
+    joint_pub = rospy.Publisher('robot1/joint_states', JointState, queue_size=10)
+    joint_msg = JointState()
+    joint_msg.name = ['wheel','head']
+    joint_msg.position = [0,0]
+
+    # listener for velocity commands
+    listener = {}    
+
+    T = 0.001
+    T_param = 2
+    rate = rospy.Rate(1/T)
+
+    t = 0
+    t0 = -2*T_param
+    while not rospy.is_shutdown():
+        
+        # check for new robots in environment for 10 sec
+        if t - t0 > T_param and t < 10:
+            t0 = t
+            for param in rospy.get_param_names():
+                if '/robot' in param and '/pose' in param:
+                    i = int(param.replace('/robot', '').replace('/pose', ''))
+                    if i not in robot.keys():
+                        # init new robot
+                        robot[i] = Pose2D()
+                        pose = [float(v) for v in rospy.get_param('/robot%i/pose' % i).split(' ')]
+                        if len(pose) != 3:
+                            pose = [0,0,0]
+                        robot[i].x = pose[0]
+                        robot[i].y = pose[1]
+                        robot[i].theta = pose[2]                                                
+                        pub[i] = rospy.Publisher('robot%i/pose' % i, Pose2D, queue_size=10)
+                        
+                        # listener if not 1
+                        if i != 1:
+                            listener[i] = Listener(i)
+                            followers.append(i)
+                        
+        # update transforms
+        # robot 1 = open loop
+        if 1 in robot.keys():
+            c,s = np.cos(.5*t),np.sin(.5*t)
+            robot[1].x = (a + b*c)*c
+            robot[1].y = (a + b*c)*s
+            vx = -a*s-2*b*c*s
+            vy = a*c + b - 2*b*s*s
+            robot[1].theta = np.arctan2(vy, vx)
+            #v = np.sqrt(vx**2+vy**2)
+            if abs(np.cos(robot[1].theta)) > abs(np.sin(robot[1].theta)):
+                v = vx/np.cos(robot[1].theta)
+            else:
+                v = vy/np.sin(robot[1].theta)
+            # update bb8 joints
+            joint_msg.header.stamp = rospy.Time.now()
+            joint_msg.position[0] += 1.2*v*T
+            joint_msg.position[1] = np.pi/4*v/4.
+            if abs(joint_msg.position[1]) > np.pi/4:
+                joint_msg.position[1] = np.sign(joint_msg.position[1])* np.pi/4
+        
+        # other from commands
+        for i in followers:
+            robot[i].x += listener[i].cmd_v*np.cos(robot[i].theta)*T
+            robot[i].y += listener[i].cmd_v*np.sin(robot[i].theta)*T
+            robot[i].theta += listener[i].cmd_w*T
+            robot[i].theta = robot[i].theta % (2*np.pi)
+            
+        # publish tf and pose
+        for i in robot:
+            br.sendTransform((robot[i].x, robot[i].y, 0),
+            tf.transformations.quaternion_from_euler(0, 0, robot[i].theta),
+            rospy.Time.now(),
+            "robot%i/ground" % i,
+            "world")
+            pub[i].publish(robot[i])
+        
+        # publish joints
+        joint_pub.publish(joint_msg)
+        
+        rate.sleep()
+        t += T
+    

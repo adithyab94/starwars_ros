@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>star_wars</name>
+  <version>0.0.0</version>
+  <description>The star_wars package</description>
+
+  <maintainer email="olivier.kermorgant@ec-nantes.fr">Olivier Kermorgant</maintainer>
+
+  <license>MIT</license>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>geometry_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>tf</depend>
+
+
+</package>

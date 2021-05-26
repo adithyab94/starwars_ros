@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+
+<robot name="bb8" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:property name="PI" value="3.1415926535897931"/>
+
+<!-- Body properties -->
+<xacro:property name="radius" value=".27"/>
+
+<xacro:macro name="body_cyl" params="name rpy">
+    <link name="robot1/${name}">
+    <visual>
+      <geometry>
+        <cylinder radius="${.5*radius}" length="${1.77*radius}"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+  </link>
+  
+  <joint name="${name}" type="fixed">
+      <parent link="robot1/main"/>
+      <child link="robot1/${name}"/>
+      <origin rpy="${rpy}"/>
+      </joint>
+</xacro:macro>   
+
+<material name="blue">
+    <color rgba="0 0 .8 1"/>
+  </material>
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+  <material name="white">
+    <color rgba="1 1 1 1"/>
+  </material>
+  <material name="orange">
+    <color rgba="1 .5 0 1"/>
+  </material>
+  
+    <material name="grey">
+    <color rgba=".5 .5 .5 1"/>
+  </material>
+  
+  <link name="robot1/ground">
+  </link>
+  
+  <link name="robot1/center">
+  </link>
+  
+  <joint name="head" type="revolute">
+      <axis xyz="0 1 0"/>
+      <limit lower="${-PI/4}" upper="${PI/4}" effort="10" velocity="2"/>
+      <child link="robot1/center"/>
+      <parent link="robot1/ground"/>
+    <origin xyz="0 0 ${radius}"/>
+   </joint>
+   
+      
+     <link name="robot1/target">
+  </link>
+  
+  <joint name="bait" type="fixed">
+      <child link="robot1/target"/>
+      <parent link="robot1/ground"/>
+    <origin xyz="-.5 0 0"/>
+   </joint>
+
+  <link name="robot1/main">
+    <visual>
+      <geometry>
+        <sphere radius="${radius}"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <joint name="wheel" type="continuous">
+    <parent link="robot1/center"/>
+    <child link="robot1/main"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  
+  <xacro:body_cyl name="cx" rpy="${PI/2} 0 0"/>
+  <xacro:body_cyl name="cz" rpy="0 0 0"/>
+  <xacro:body_cyl name="cy" rpy="0 ${PI/2} 0"/>  
+  
+  <link name="robot1/head">
+      <visual>
+      <geometry>
+        <sphere radius="${.52*radius}"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+  
+  <joint name="neck" type="fixed">
+    <parent link="robot1/center"/>
+    <child link="robot1/head"/>
+    <origin xyz="0 0 ${1.1*radius}"/>
+  </joint>
+  
+    <link name="robot1/eye">
+      <visual>
+      <geometry>
+          <cylinder radius="${.12*radius}" length="${.35*radius}"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+  </link>
+  
+    <joint name="eye" type="fixed">
+    <parent link="robot1/head"/>
+    <child link="robot1/eye"/>
+    <origin xyz = "${.32*radius} 0 ${.2*radius}" rpy="0 ${PI/2} 0"/>
+  </joint>
+  
+      <link name="robot1/crown">
+      <visual>
+      <geometry>
+          <cylinder radius="${.35*radius}" length="${.35*radius}"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+  </link>
+  
+    <joint name="crown" type="fixed">
+    <parent link="robot1/head"/>
+    <child link="robot1/crown"/>
+    <origin xyz = "0 0 ${.25*radius}"/>
+  </joint>
+
+
+</robot>
